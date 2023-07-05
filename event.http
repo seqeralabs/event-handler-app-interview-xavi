@@ -1,3 +1,6 @@
+### GET request with a header
+GET http://localhost:8000/events
+### POST request with a header
 POST http://localhost:8000/events
 Content-Type: application/json
 

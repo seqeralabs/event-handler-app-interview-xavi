@@ -28,11 +28,11 @@ class EventHandler implements Handler {
         switch (http.requestMethod) {
             case "POST" -> {
                 handlePost(http)
-                break
+
             }
             case "GET" -> {
                 handleGet(http)
-                break
+
             }
             default -> http.sendResponseHeaders(405, 0)
         }
@@ -40,8 +40,13 @@ class EventHandler implements Handler {
 
     }
     void handleGet(HttpExchange http) {
-        // TODO: implement GET
-        http.sendResponseHeaders(501, 0)
+        def events = eventDao.list()
+        http.responseHeaders.add("Content-type", "application/json")
+        def response = JsonOutput.toJson(events)
+        http.sendResponseHeaders(200, response.length())
+        http.responseBody.withWriter { out ->
+            out << response
+        }
     }
     void handlePost(HttpExchange http) {
         def body = http.requestBody.text

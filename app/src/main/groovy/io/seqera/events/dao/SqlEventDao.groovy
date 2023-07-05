@@ -21,4 +21,11 @@ class SqlEventDao implements EventDao {
         event.id = id
         return event
     }
+
+    @Override
+    List<Event> list() {
+        String query = """select * from ${tableName}"""
+        return sql.rows(query).collect {new Event(id:it.id, workspaceId: it.workspaceId, userId: it.userId, mem: it['mem'] as Long, cpu: it.cpu as Long, io:it.io as Long)}
+
+    }
 }
