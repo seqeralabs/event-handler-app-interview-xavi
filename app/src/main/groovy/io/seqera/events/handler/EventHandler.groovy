@@ -25,10 +25,25 @@ class EventHandler implements Handler {
 
     @Override
     void handle(HttpExchange http) throws IOException {
-        if(http.requestMethod != "POST") {
-            http.sendResponseHeaders(405, 0)
-            return
+        switch (http.requestMethod) {
+            case "POST" -> {
+                handlePost(http)
+                break
+            }
+            case "GET" -> {
+                handleGet(http)
+                break
+            }
+            default -> http.sendResponseHeaders(405, 0)
         }
+
+
+    }
+    void handleGet(HttpExchange http) {
+        // TODO: implement GET
+        http.sendResponseHeaders(501, 0)
+    }
+    void handlePost(HttpExchange http) {
         def body = http.requestBody.text
         def event = this.json.parseText(body) as Event
         event = this.eventDao.save(event)
