@@ -1,0 +1,10 @@
+POST http://localhost:8000/events
+Content-Type: application/json
+
+{
+  "workspaceId": "workspaceId",
+  "userId": "userId",
+  "mem": 100,
+  "cpu": 80,
+  "io": 4
+}

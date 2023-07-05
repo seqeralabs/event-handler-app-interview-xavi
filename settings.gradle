@@ -1,0 +1,4 @@
+rootProject.name = 'event-handler'
+include 'app'
+include 'app'
+
