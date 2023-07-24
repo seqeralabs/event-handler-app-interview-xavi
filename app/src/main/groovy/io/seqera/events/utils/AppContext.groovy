@@ -1,11 +1,11 @@
 package io.seqera.events.utils
 
 import groovy.transform.CompileStatic
-import groovy.sql.Sql
+import io.seqera.events.utils.db.ConnectionProvider
 
 @CompileStatic
 class AppContext {
 
-    Sql sql
+    ConnectionProvider connectionProvider
 
 }

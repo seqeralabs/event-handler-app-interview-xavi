@@ -6,6 +6,8 @@ import io.seqera.events.handler.EventHandler
 import io.seqera.events.handler.Handler
 import io.seqera.events.utils.AppContext
 import groovy.yaml.YamlSlurper
+import io.seqera.events.utils.db.ConnectionProvider
+import io.seqera.events.utils.db.ConnectionProviderImpl
 
 class App {
 
@@ -13,11 +15,13 @@ class App {
     static Handler[] handlers
     static HttpServer httpServer
     static AppContext context
+    static ConnectionProvider connectionProvider
 
     static void main(String[] args) {
         context = buildContext()
         // Building dao
-        EventDao dao = new SqlEventDao(context.sql)
+        // TODO: implement a better DI pattern
+        EventDao dao = new SqlEventDao(context.connectionProvider.getConnection())
         handlers = [new EventHandler(dao)]
         httpServer = startServer()
         /**
@@ -34,10 +38,9 @@ class App {
 
 
     static AppContext buildContext() {
-        def sql = buildDbConnection()
-        //TODO: implement a database connection pool mechanism
-        //TODO: implement migrations
-        return new AppContext(sql: sql)
+        connectionProvider = buildConnectionProvider()
+        migrateDb()
+        return new AppContext(connectionProvider: connectionProvider)
     }
     static HttpServer startServer() {
         return HttpServer.create(new InetSocketAddress(PORT), /*max backlog*/ 0).with {
@@ -58,11 +61,20 @@ class App {
         }
     }
 
-    static def Sql buildDbConnection() {
+    static ConnectionProvider buildConnectionProvider(){
         def file = new File(App.class.getResource('/app.yaml').toURI())
         def conf = new YamlSlurper().parse(file)
         def databaseConfig = conf['app']['database']
-        def sql = Sql.newInstance(databaseConfig['url'], databaseConfig['username'],databaseConfig['password'], databaseConfig['driver'])
+        return new ConnectionProviderImpl(serverUrl: databaseConfig['url'], username: databaseConfig['username'],
+                password: databaseConfig['password'], driver: databaseConfig['driver'])
+    }
+
+
+    static def migrateDb() {
+        def file = new File(App.class.getResource('/app.yaml').toURI())
+        def conf = new YamlSlurper().parse(file)
+        def databaseConfig = conf['app']['database']
+        def sql  = connectionProvider.getConnection()
         if(databaseConfig['migrations']) {
             migrateFrom(sql, databaseConfig['migrations'] as String)
         }

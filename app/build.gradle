@@ -2,8 +2,8 @@ plugins {
     id 'groovy'
 }
 
-group = 'org.example'
-version = 'unspecified'
+group = 'io.seqera'
+version = '0.0.1'
 
 repositories {
     mavenCentral()

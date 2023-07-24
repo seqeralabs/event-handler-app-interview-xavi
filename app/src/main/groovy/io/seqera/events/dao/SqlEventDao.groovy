@@ -10,7 +10,7 @@ class SqlEventDao implements EventDao {
     private Sql sql;
     def String tableName = "EVENT"
 
-    public SqlEventDao(Sql sql){
+    SqlEventDao(Sql sql){
         this.sql = sql;
     }
 
