@@ -20,20 +20,9 @@ class App {
     static void main(String[] args) {
         context = buildContext()
         // Building dao
-        // TODO: implement a better DI pattern
         EventDao dao = new SqlEventDao(context.connectionProvider.getConnection())
         handlers = [new EventHandler(dao)]
         httpServer = startServer()
-        /**
-         * TODO: implement a shutdown hook
-
-        Runtime.getRuntime().addShutdownHook(new Thread() {
-            @Override
-            public void run() {
-                println 'Stopping server'
-                httpServer.stop();
-            }
-        }) **/
     }
 
 
@@ -45,7 +34,6 @@ class App {
     static HttpServer startServer() {
         return HttpServer.create(new InetSocketAddress(PORT), /*max backlog*/ 0).with {
             println "Server is listening on ${PORT}, hit Ctrl+C to exit."
-            //TODO: implement a dispatching mechanism
             for (def h : handlers){
                 createContext(h.handlerPath, h)
             }
