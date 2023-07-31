@@ -1,7 +1,10 @@
 package io.seqera.events.utils.db
 
+import groovy.transform.CompileStatic
+
 import java.sql.Connection
 
+@CompileStatic
 class ConnectionImpl {
 
     private PooledConnectionImpl pooledConnection

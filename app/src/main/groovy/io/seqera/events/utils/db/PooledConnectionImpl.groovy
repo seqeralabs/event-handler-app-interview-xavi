@@ -1,5 +1,7 @@
 package io.seqera.events.utils.db
 
+import groovy.transform.CompileStatic
+
 import javax.sql.ConnectionEvent
 import javax.sql.ConnectionEventListener
 import javax.sql.PooledConnection
@@ -7,6 +9,7 @@ import javax.sql.StatementEventListener
 import java.sql.Connection
 import java.sql.SQLException
 
+@CompileStatic
 class PooledConnectionImpl implements PooledConnection {
 
     private Connection connection

@@ -1,6 +1,7 @@
 package io.seqera.events.utils.db
 
 import groovy.sql.Sql
+import groovy.transform.CompileStatic
 
 import javax.sql.ConnectionEvent
 import javax.sql.ConnectionEventListener
@@ -9,39 +10,41 @@ import java.sql.Connection
 import java.sql.DriverManager
 import java.sql.SQLException
 import java.sql.SQLFeatureNotSupportedException
+import java.util.concurrent.atomic.AtomicReferenceArray
 import java.util.logging.Logger
 
+import static io.seqera.events.utils.db.PooledDataSource.ConnectionState.*
+
+@CompileStatic
 class PooledDataSource implements DataSource, ConnectionEventListener {
 
-    static int DEFAULT_LOGIN_TIMEOUT = 300
     static int DEFAULT_IDLE_TIMEOUT = 0
-
     static int DEFAULT_INITIAL_POOL_SIZE = 10
 
-    private int loginTimeout = DEFAULT_LOGIN_TIMEOUT
     private int idleTimeout = DEFAULT_IDLE_TIMEOUT
-
     private int initialPoolSize = DEFAULT_INITIAL_POOL_SIZE
+
+    private PooledConnectionImpl[] connections
+    private AtomicReferenceArray<ConnectionState> states
+
+    private PrintWriter logWriter = System.out.newPrintWriter()
 
     private String serverUrl
     private String username
     private String password
 
-    private def connections = new PooledConnectionImpl[initialPoolSize]
-
-    private PrintWriter logWriter = System.out.newPrintWriter()
+    private enum ConnectionState {
+        EMPTY, AVAILABLE, ALLOCATED
+    }
 
     PooledDataSource(
             String serverUrl,
             String username,
             String password,
             String driver,
-            int loginTimeout = DEFAULT_LOGIN_TIMEOUT,
             int idleTimeout = DEFAULT_IDLE_TIMEOUT,
             int initialPoolSize = DEFAULT_INITIAL_POOL_SIZE
     ) {
-
-        assert loginTimeout >= 0
         assert idleTimeout >= 0
         assert initialPoolSize > 0
 
@@ -49,16 +52,36 @@ class PooledDataSource implements DataSource, ConnectionEventListener {
         this.serverUrl = serverUrl
         this.username = username
         this.password = password
-        this.loginTimeout = loginTimeout
         this.idleTimeout = idleTimeout
         this.initialPoolSize = initialPoolSize
 
-        allocateConnections(initialPoolSize, serverUrl, username, password)
+        connections = new PooledConnectionImpl[initialPoolSize]
+        states = new AtomicReferenceArray<ConnectionState>(initialPoolSize)
+
+        // Create initial pool of connections
+        for (int i = 0; i < connections.length; i++) {
+            connections[i] = createConnection()
+            states.set(i, AVAILABLE)
+        }
     }
 
     @Override
     Connection getConnection() throws SQLException {
-        return new ConnectionImpl(connections[0]) // TODO
+        for (int i = 0; i < states.length(); i++) {
+            if (states.compareAndSet(i, AVAILABLE, ALLOCATED)) {
+                return new ConnectionImpl(connections[i])
+            }
+            if (states.compareAndSet(i, EMPTY, ALLOCATED)) {
+                try {
+                    connections[i] = createConnection()
+                    return new ConnectionImpl(connections[i])
+                } catch (SQLException e) {
+                    e.printStackTrace()
+                    states.set(i, EMPTY)
+                }
+            }
+        }
+        throw new SQLException("No connection available")
     }
 
     @Override
@@ -68,12 +91,24 @@ class PooledDataSource implements DataSource, ConnectionEventListener {
 
     @Override
     void connectionClosed(ConnectionEvent event) {
-        // TODO Re-allocate resources
+        for (int i = 0; i < connections.length; i++) {
+            if (connections[i] == event.getSource()) {
+                states.set(i, AVAILABLE)
+                break
+            }
+        }
     }
 
     @Override
     void connectionErrorOccurred(ConnectionEvent event) {
-
+        for (int i = 0; i < connections.length; i++) {
+            if (connections[i] == event.getSource()) {
+                states.set(i, ALLOCATED)
+                connections[i] = null
+                states.set(i, EMPTY)
+                break
+            }
+        }
     }
 
     @Override
@@ -88,12 +123,12 @@ class PooledDataSource implements DataSource, ConnectionEventListener {
 
     @Override
     void setLoginTimeout(int seconds) throws SQLException {
-        this.loginTimeout = seconds
+        throw new SQLFeatureNotSupportedException()
     }
 
     @Override
     int getLoginTimeout() throws SQLException {
-        return loginTimeout
+        return 0
     }
 
     long getIdleTimeout() {
@@ -119,12 +154,10 @@ class PooledDataSource implements DataSource, ConnectionEventListener {
         return false
     }
 
-    private void allocateConnections(int initialPoolSize, String serverUrl, String username, String password) {
-        for (i in 0..initialPoolSize - 1) {
-            def connection = DriverManager.getConnection(serverUrl, username, password)
-            def pooledConnection = new PooledConnectionImpl(connection)
-            pooledConnection.addConnectionEventListener(this)
-            connections[i] = pooledConnection
-        }
+    private PooledConnectionImpl createConnection() {
+        def connection = DriverManager.getConnection(serverUrl, username, password)
+        def pooledConnection = new PooledConnectionImpl(connection)
+        pooledConnection.addConnectionEventListener(this)
+        return pooledConnection
     }
 }

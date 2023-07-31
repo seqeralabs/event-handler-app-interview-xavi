@@ -7,9 +7,9 @@ import org.junit.jupiter.api.TestInstance
 import java.sql.Connection
 import java.sql.Driver
 import java.sql.DriverManager
+import java.sql.SQLException
 
-import static io.seqera.events.utils.db.PooledDataSource.DEFAULT_IDLE_TIMEOUT
-import static io.seqera.events.utils.db.PooledDataSource.DEFAULT_LOGIN_TIMEOUT
+import static org.junit.jupiter.api.Assertions.assertThrows
 import static org.mockito.ArgumentMatchers.any
 import static org.mockito.ArgumentMatchers.eq
 import static org.mockito.Mockito.*
@@ -18,13 +18,11 @@ import static org.mockito.Mockito.*
 class PooledDataSourceTest {
 
     private Driver driverMock
-    private PooledDataSource dataSource
 
-    private def connectionMocks = [
-            mock(Connection.class),
-            mock(Connection.class),
-            mock(Connection.class)
-    ]
+    private int initialPoolSize = 3
+    private int idleTimeout = 100
+
+    private List<Connection> connectionMocks = []
 
     @BeforeAll
     void beforeAll() {
@@ -32,41 +30,49 @@ class PooledDataSourceTest {
 
         // We need to stub the driver to allow DriverManager check the connection
         when(driverMock.acceptsURL(eq("jdbc:test:events"))).thenReturn(true)
-
-        def connectionMocksCopy = connectionMocks.clone()
         when(driverMock.connect(eq("jdbc:test:events"), any())).thenAnswer {
             // Return new connection mock per call
-            connectionMocksCopy.remove(0)
+            connectionMocks += mock(Connection.class)
+            connectionMocks.last()
         }
 
         DriverManager.registerDriver(driverMock, {})
-
-        dataSource = new PooledDataSource(
-                "jdbc:test:events",
-                "test",
-                "",
-                Driver.class.name,
-                DEFAULT_LOGIN_TIMEOUT,
-                DEFAULT_IDLE_TIMEOUT,
-                3,
-
-        )
     }
 
     @Test
     void 'database connections are allocated at startup'() {
-        dataSource.getConnection()
-
-        verify(driverMock, times(dataSource.initialPoolSize))
-                .connect(eq("jdbc:test:events"), any())
+        def dataSource = pooledDataSource()
+        verify(driverMock, times(dataSource.initialPoolSize)).connect(eq("jdbc:test:events"), any())
     }
 
     @Test
     void 'database connections are not closed by the application code'() {
+        def dataSource = pooledDataSource()
         dataSource.getConnection().close()
 
-        for (connectionMock in connectionMocks) {
-            verify(connectionMock, never()).close()
+        for (connection in connectionMocks) {
+            verify(connection, never()).close()
         }
+    }
+
+    @Test
+    void 'an exception is thrown when no connections are available in the pool'() {
+        def dataSource = pooledDataSource()
+        for (int i = 0; i < initialPoolSize; i++) {
+            dataSource.getConnection()
+        }
+        assertThrows(SQLException.class) {
+            dataSource.getConnection()
+        }
+    }
+
+    private PooledDataSource pooledDataSource() {
+        new PooledDataSource("jdbc:test:events",
+                "test",
+                "",
+                Driver.class.name,
+                idleTimeout,
+                initialPoolSize
+        )
     }
 }
