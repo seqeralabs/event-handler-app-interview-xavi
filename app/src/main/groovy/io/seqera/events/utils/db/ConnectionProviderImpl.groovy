@@ -9,10 +9,11 @@ class ConnectionProviderImpl implements ConnectionProvider {
     String serverUrl
     String username
     String password
-    String driver;
+    String driver
 
     @Override
     Sql getConnection() {
-        return  Sql.newInstance(serverUrl, username, password, driver)
+        def pool = new PooledDataSource(serverUrl, username, password, driver)
+        return new Sql(pool)
     }
 }
