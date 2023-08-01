@@ -174,11 +174,9 @@ class PooledDataSource implements DataSource, ConnectionEventListener {
     private void checkConnectionTimeouts() {
         def idleTimeoutMillis = idleTimeout * 1000
         for (int i = 0; i < connections.length; i++) {
-            if (states.get(i) == ALLOCATED) {
-                def handle = connections[i].connection as ConnectionHandle
-                if (idleTimeoutMillis < System.currentTimeMillis() - handle.lastUsed) {
-                    connectionClosed(new ConnectionEvent(connections[i]))
-                }
+            def handle = connections[i].connection as ConnectionHandle
+            if (idleTimeoutMillis < System.currentTimeMillis() - handle.lastUsed) {
+                states.compareAndSet(i, ALLOCATED, AVAILABLE)
             }
         }
     }
