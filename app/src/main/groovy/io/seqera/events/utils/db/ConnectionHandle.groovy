@@ -28,7 +28,7 @@ class ConnectionHandle implements Connection {
     private PooledConnectionImpl pooledConnection
     private Connection connection
 
-    protected long lastUsed
+    private long lastUsed
 
     ConnectionHandle(PooledConnectionImpl pooledConnection, Connection connection) {
         this.pooledConnection = pooledConnection
@@ -623,6 +623,10 @@ class ConnectionHandle implements Connection {
     @Override
     boolean isWrapperFor(Class<?> iface) throws SQLException {
         return false
+    }
+
+    long getLastUsed() {
+        lastUsed
     }
 
     private def handleConnectionError(SQLNonTransientConnectionException exception) {
