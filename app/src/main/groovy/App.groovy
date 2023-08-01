@@ -54,7 +54,9 @@ class App {
         def conf = new YamlSlurper().parse(file)
         def databaseConfig = conf['app']['database']
         return new ConnectionProviderImpl(serverUrl: databaseConfig['url'], username: databaseConfig['username'],
-                password: databaseConfig['password'], driver: databaseConfig['driver'])
+                password: databaseConfig['password'], driver: databaseConfig['driver'],
+                idleTimeoutSeconds: databaseConfig['idle-timeout-seconds'] as Integer,
+                initialPoolSize: databaseConfig['initial-pool-size'] as Integer)
     }
 
 

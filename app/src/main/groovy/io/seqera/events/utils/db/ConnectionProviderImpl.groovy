@@ -11,9 +11,12 @@ class ConnectionProviderImpl implements ConnectionProvider {
     String password
     String driver
 
+    int idleTimeoutSeconds
+    int initialPoolSize
+
     @Override
     Sql getConnection() {
-        def pool = new PooledDataSource(serverUrl, username, password, driver)
+        def pool = new PooledDataSource(serverUrl, username, password, driver, idleTimeoutSeconds, initialPoolSize)
         return new Sql(pool)
     }
 }
