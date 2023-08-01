@@ -1,38 +1,35 @@
 package io.seqera.events.utils.db
 
 import groovy.transform.CompileStatic
-
+import java.sql.Connection
+import java.sql.SQLException
+import java.sql.SQLFeatureNotSupportedException
 import javax.sql.ConnectionEvent
 import javax.sql.ConnectionEventListener
 import javax.sql.PooledConnection
 import javax.sql.StatementEventListener
-import java.sql.Connection
-import java.sql.SQLException
 
 @CompileStatic
 class PooledConnectionImpl implements PooledConnection {
 
     private Connection connection
+    private ConnectionHandle handle
 
     private Set<ConnectionEventListener> listeners = new HashSet<>()
 
     PooledConnectionImpl(Connection connection) {
+        this.handle = new ConnectionHandle(this, connection)
         this.connection = connection
     }
 
     @Override
     Connection getConnection() throws SQLException {
-        return connection
+        handle
     }
 
     @Override
     void close() throws SQLException {
         connection.close()
-    }
-
-    void release() {
-        def event = new ConnectionEvent(this)
-        for (listener in listeners) listener.connectionClosed(event)
     }
 
     @Override
@@ -47,9 +44,21 @@ class PooledConnectionImpl implements PooledConnection {
 
     @Override
     void addStatementEventListener(StatementEventListener listener) {
+        throw new SQLFeatureNotSupportedException()
     }
 
     @Override
     void removeStatementEventListener(StatementEventListener listener) {
+        throw new SQLFeatureNotSupportedException()
+    }
+
+    protected void notifyConnectionClosed() {
+        def event = new ConnectionEvent(this)
+        for (listener in listeners) listener.connectionClosed(event)
+    }
+
+    protected void notifyConnectionError(SQLException exception) {
+        def event = new ConnectionEvent(this, exception)
+        for (listener in listeners) listener.connectionErrorOccurred(event)
     }
 }

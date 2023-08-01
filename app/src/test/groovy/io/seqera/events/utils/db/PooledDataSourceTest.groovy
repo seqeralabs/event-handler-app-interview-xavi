@@ -1,28 +1,31 @@
 package io.seqera.events.utils.db
 
-import org.junit.jupiter.api.BeforeAll
-import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.TestInstance
-
 import java.sql.Connection
 import java.sql.Driver
 import java.sql.DriverManager
 import java.sql.SQLException
+import java.sql.SQLNonTransientConnectionException
+import org.junit.jupiter.api.BeforeAll
+import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.TestInstance
 
 import static org.junit.jupiter.api.Assertions.assertThrows
 import static org.mockito.ArgumentMatchers.any
 import static org.mockito.ArgumentMatchers.eq
-import static org.mockito.Mockito.*
+import static org.mockito.Mockito.mock
+import static org.mockito.Mockito.never
+import static org.mockito.Mockito.times
+import static org.mockito.Mockito.verify
+import static org.mockito.Mockito.when
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class PooledDataSourceTest {
 
     private Driver driverMock
+    private List<Connection> connectionMocks = []
 
     private int initialPoolSize = 3
-    private int idleTimeout = 100
-
-    private List<Connection> connectionMocks = []
+    private int idleTimeout = 1
 
     @BeforeAll
     void beforeAll() {
@@ -63,7 +66,7 @@ class PooledDataSourceTest {
         def dataSource = pooledDataSource()
         List<Connection> connections = []
 
-        // Consume all connection pool
+        // Allocate all connections in the pool
         for (int i = 0; i < initialPoolSize; i++) {
             connections += dataSource.getConnection()
         }
@@ -74,10 +77,47 @@ class PooledDataSourceTest {
     }
 
     @Test
+    void 'database connections are re-established when there is a connection error'() {
+        def dataSource = pooledDataSource()
+
+        // Stub all connections to throw an exception
+        for (int i = 0; i < initialPoolSize; i++) {
+            when(connectionMocks.get(i).prepareCall(any()))
+                    .thenThrow(new SQLNonTransientConnectionException())
+        }
+
+        for (int i = 0; i < initialPoolSize; i++) {
+            assertThrows(SQLException.class) {
+                dataSource.getConnection().prepareCall("SELECT 1 + 1")
+            }
+        }
+
+        dataSource.getConnection()
+
+        // A new connection to the database should have been created
+        verify(driverMock, times(dataSource.initialPoolSize))
+                .connect(eq("jdbc:test:events"), any())
+    }
+
+    @Test
+    void 'database connections are recycled after an idle timeout'() {
+        def dataSource = pooledDataSource()
+
+        // Allocate all connections in the pool
+        for (int i = 0; i < initialPoolSize; i++) {
+            dataSource.getConnection()
+        }
+
+        // After idle time, connection is available
+        Thread.sleep(idleTimeout * 2000)
+        dataSource.getConnection()
+    }
+
+    @Test
     void 'an exception is thrown when no connections are available in the pool'() {
         def dataSource = pooledDataSource()
 
-        // Consume all connection pool
+        // Allocate all connections in the pool
         for (int i = 0; i < initialPoolSize; i++) {
             dataSource.getConnection()
         }
