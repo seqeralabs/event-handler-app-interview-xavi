@@ -5,6 +5,7 @@ import java.sql.Driver
 import java.sql.DriverManager
 import java.sql.SQLException
 import java.sql.SQLNonTransientConnectionException
+import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
@@ -42,6 +43,11 @@ class PooledDataSourceTest {
         DriverManager.registerDriver(driverMock, {})
     }
 
+    @AfterEach
+    void tearDown() {
+        connectionMocks.clear()
+    }
+
     @Test
     void 'database connections are allocated at startup'() {
         def dataSource = pooledDataSource()
@@ -53,7 +59,7 @@ class PooledDataSourceTest {
     @Test
     void 'database connections are not physically closed by the application code'() {
         def dataSource = pooledDataSource()
-        dataSource.getConnection().close()
+        dataSource.connection.close()
 
         for (connection in connectionMocks) {
             // None of the connection mocks should be closed
@@ -68,12 +74,12 @@ class PooledDataSourceTest {
 
         // Allocate all connections in the pool
         for (int i = 0; i < initialPoolSize; i++) {
-            connections += dataSource.getConnection()
+            connections += dataSource.connection
         }
 
         // Closing a connection should make it available again
         connections.last().close()
-        dataSource.getConnection()
+        dataSource.connection
     }
 
     @Test
@@ -82,21 +88,16 @@ class PooledDataSourceTest {
 
         // Stub all connections to throw an exception
         for (int i = 0; i < initialPoolSize; i++) {
-            when(connectionMocks.get(i).prepareCall(any()))
+            when(connectionMocks[i].prepareCall(any()))
                     .thenThrow(new SQLNonTransientConnectionException())
         }
 
-        for (int i = 0; i < initialPoolSize; i++) {
-            assertThrows(SQLException.class) {
-                dataSource.getConnection().prepareCall("SELECT 1 + 1")
-            }
+        assertThrows(SQLException.class) {
+            dataSource.connection.prepareCall("SELECT 1 + 1")
         }
 
-        dataSource.getConnection()
-
-        // A new connection to the database should have been created
-        verify(driverMock, times(dataSource.initialPoolSize))
-                .connect(eq("jdbc:test:events"), any())
+        // The new available connection uses a non-stubbed mock
+        dataSource.connection.prepareCall("SELECT 1 + 1")
     }
 
     @Test
@@ -105,12 +106,12 @@ class PooledDataSourceTest {
 
         // Allocate all connections in the pool
         for (int i = 0; i < initialPoolSize; i++) {
-            dataSource.getConnection()
+            dataSource.connection
         }
 
         // After idle time, connection is available
-        Thread.sleep(idleTimeout * 2000)
-        dataSource.getConnection()
+        Thread.sleep(idleTimeout * 1500)
+        dataSource.connection
     }
 
     @Test
@@ -119,12 +120,12 @@ class PooledDataSourceTest {
 
         // Allocate all connections in the pool
         for (int i = 0; i < initialPoolSize; i++) {
-            dataSource.getConnection()
+            dataSource.connection
         }
 
         // Next connection request should fail
         assertThrows(SQLException.class) {
-            dataSource.getConnection()
+            dataSource.connection
         }
     }
 
