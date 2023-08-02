@@ -49,7 +49,13 @@ class PooledDataSourceTest {
 
     @BeforeEach
     void setUp() {
-        dataSource = pooledDataSource()
+        dataSource = new PooledDataSource('jdbc:test:events',
+                'test',
+                '',
+                Driver.class.name,
+                idleTimeout,
+                initialPoolSize
+        )
     }
 
     @AfterEach
@@ -159,15 +165,5 @@ class PooledDataSourceTest {
         assertThrows(SQLTransientConnectionException.class) {
             dataSource.connection
         }
-    }
-
-    private PooledDataSource pooledDataSource() {
-        new PooledDataSource('jdbc:test:events',
-                'test',
-                '',
-                Driver.class.name,
-                idleTimeout,
-                initialPoolSize
-        )
     }
 }
