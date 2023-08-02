@@ -93,7 +93,7 @@ class PooledDataSourceTest {
         connection.close()
 
         assertThrows(SQLNonTransientConnectionException.class) {
-            connection.prepareCall("SELECT 1 + 1")
+            connection.prepareCall('CALL now()')
         }
     }
 
@@ -128,11 +128,11 @@ class PooledDataSourceTest {
         }
 
         assertThrows(SQLNonTransientConnectionException.class) {
-            dataSource.connection.prepareCall("SELECT 1 + 1")
+            dataSource.connection.prepareCall('CALL now()')
         }
 
         // The new available connection uses a non-stubbed mock
-        dataSource.connection.prepareCall("SELECT 1 + 1")
+        dataSource.connection.prepareCall('CALL now()')
         assertEquals(connectionMockSize + 1, connectionMocks.size())
     }
 
@@ -166,9 +166,9 @@ class PooledDataSourceTest {
     }
 
     private PooledDataSource pooledDataSource() {
-        new PooledDataSource("jdbc:test:events",
-                "test",
-                "",
+        new PooledDataSource('jdbc:test:events',
+                'test',
+                '',
                 Driver.class.name,
                 idleTimeout,
                 initialPoolSize

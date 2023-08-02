@@ -1,6 +1,7 @@
 plugins {
     id 'groovy'
     id 'application'
+    id 'jvm-test-suite'
 }
 
 group = 'io.seqera'
@@ -27,6 +28,27 @@ application {
     mainClass = 'App'
 }
 
-test {
-    useJUnitPlatform()
+testing {
+    suites {
+        test {
+            useJUnitJupiter()
+        }
+        integrationTest(JvmTestSuite) {
+            dependencies {
+                implementation project(':app')
+                implementation 'org.apache.groovy:groovy:4.0.2'
+            }
+            targets {
+                all {
+                    testTask.configure {
+                        shouldRunAfter(test)
+                    }
+                }
+            }
+        }
+    }
+}
+
+tasks.named('check') {
+    dependsOn(testing.suites.integrationTest)
 }

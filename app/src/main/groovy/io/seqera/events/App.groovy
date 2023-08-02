@@ -1,3 +1,5 @@
+package io.seqera.events
+
 import com.sun.net.httpserver.HttpServer
 import groovy.sql.Sql
 import io.seqera.events.dao.EventDao
