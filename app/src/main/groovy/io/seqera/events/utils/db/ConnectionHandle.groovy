@@ -19,7 +19,6 @@ import java.sql.Savepoint
 import java.sql.ShardingKey
 import java.sql.Statement
 import java.sql.Struct
-import java.time.Clock
 import java.util.concurrent.Executor
 
 @CompileStatic
@@ -30,6 +29,8 @@ class ConnectionHandle implements Connection {
 
     private long lastUsed
 
+    boolean closed = false
+
     ConnectionHandle(PooledConnectionImpl pooledConnection, Connection connection) {
         this.pooledConnection = pooledConnection
         this.connection = connection
@@ -37,581 +38,404 @@ class ConnectionHandle implements Connection {
 
     @Override
     Statement createStatement() throws SQLException {
-        lastUsed = System.currentTimeMillis()
-        try {
-            return connection.createStatement()
-        } catch (SQLNonTransientConnectionException e) {
-            throw handleConnectionError(e)
+        return run {
+            connection.createStatement()
         }
     }
 
     @Override
     PreparedStatement prepareStatement(String sql) throws SQLException {
-        lastUsed = System.currentTimeMillis()
-        try {
-            return connection.prepareStatement(sql)
-        } catch (SQLNonTransientConnectionException e) {
-            throw handleConnectionError(e)
+        return run {
+            connection.prepareStatement(sql)
         }
     }
 
     @Override
     CallableStatement prepareCall(String sql) throws SQLException {
-        lastUsed = System.currentTimeMillis()
-        try {
-            return connection.prepareCall(sql)
-        } catch (SQLNonTransientConnectionException e) {
-            throw handleConnectionError(e)
+        return run {
+            connection.prepareCall(sql)
         }
     }
 
     @Override
     String nativeSQL(String sql) throws SQLException {
-        lastUsed = System.currentTimeMillis()
-        try {
-            return connection.nativeSQL(sql)
-        } catch (SQLNonTransientConnectionException e) {
-            throw handleConnectionError(e)
+        return run {
+            connection.nativeSQL(sql)
         }
     }
 
     @Override
     void setAutoCommit(boolean autoCommit) throws SQLException {
-        lastUsed = System.currentTimeMillis()
-        try {
+        run {
             connection.setAutoCommit(autoCommit)
-        } catch (SQLNonTransientConnectionException e) {
-            throw handleConnectionError(e)
         }
     }
 
     @Override
     boolean getAutoCommit() throws SQLException {
-        lastUsed = System.currentTimeMillis()
-        try {
-            return connection.getAutoCommit()
-        } catch (SQLNonTransientConnectionException e) {
-            throw handleConnectionError(e)
+        return run {
+            connection.getAutoCommit()
         }
     }
 
     @Override
     void commit() throws SQLException {
-        lastUsed = System.currentTimeMillis()
-        try {
+        run {
             connection.commit()
-        } catch (SQLNonTransientConnectionException e) {
-            throw handleConnectionError(e)
         }
     }
 
     @Override
     void rollback() throws SQLException {
-        lastUsed = System.currentTimeMillis()
-        try {
+        run {
             connection.rollback()
-        } catch (SQLNonTransientConnectionException e) {
-            throw handleConnectionError(e)
         }
     }
 
     @Override
     void close() throws SQLException {
-        lastUsed = System.currentTimeMillis()
-        try {
-            pooledConnection.notifyConnectionClosed()
-        } catch (SQLNonTransientConnectionException e) {
-            throw handleConnectionError(e)
-        }
+        closed = true
+        pooledConnection.notifyConnectionClosed()
     }
 
     @Override
     boolean isClosed() throws SQLException {
-        lastUsed = System.currentTimeMillis()
-        try {
-            return connection.isClosed()
-        } catch (SQLNonTransientConnectionException e) {
-            throw handleConnectionError(e)
-        }
+        closed
     }
 
     @Override
     DatabaseMetaData getMetaData() throws SQLException {
-        lastUsed = System.currentTimeMillis()
-        try {
-            return connection.getMetaData()
-        } catch (SQLNonTransientConnectionException e) {
-            throw handleConnectionError(e)
+        return run {
+            connection.getMetaData()
         }
     }
 
     @Override
     void setReadOnly(boolean readOnly) throws SQLException {
-        lastUsed = System.currentTimeMillis()
-        try {
+        run {
             connection.setReadOnly(readOnly)
-        } catch (SQLNonTransientConnectionException e) {
-            throw handleConnectionError(e)
         }
     }
 
     @Override
     boolean isReadOnly() throws SQLException {
-        lastUsed = System.currentTimeMillis()
-        try {
-            return connection.isReadOnly()
-        } catch (SQLNonTransientConnectionException e) {
-            throw handleConnectionError(e)
+        return run {
+            connection.isReadOnly()
         }
     }
 
     @Override
     void setCatalog(String catalog) throws SQLException {
-        lastUsed = System.currentTimeMillis()
-        try {
+        run {
             connection.setCatalog(catalog)
-        } catch (SQLNonTransientConnectionException e) {
-            throw handleConnectionError(e)
         }
     }
 
     @Override
     String getCatalog() throws SQLException {
-        lastUsed = System.currentTimeMillis()
-        try {
-            return connection.getCatalog()
-        } catch (SQLNonTransientConnectionException e) {
-            throw handleConnectionError(e)
+        return run {
+            connection.getCatalog()
         }
     }
 
     @Override
     void setTransactionIsolation(int level) throws SQLException {
-        lastUsed = System.currentTimeMillis()
-        try {
+        run {
             connection.setTransactionIsolation(level)
-        } catch (SQLNonTransientConnectionException e) {
-            throw handleConnectionError(e)
         }
     }
 
     @Override
     int getTransactionIsolation() throws SQLException {
-        lastUsed = System.currentTimeMillis()
-        try {
-            return connection.getTransactionIsolation()
-        } catch (SQLNonTransientConnectionException e) {
-            throw handleConnectionError(e)
+        return run {
+            connection.getTransactionIsolation()
         }
     }
 
     @Override
     SQLWarning getWarnings() throws SQLException {
-        lastUsed = System.currentTimeMillis()
-        try {
-            return connection.getWarnings()
-        } catch (SQLNonTransientConnectionException e) {
-            throw handleConnectionError(e)
+        return run {
+            connection.getWarnings()
         }
     }
 
     @Override
     void clearWarnings() throws SQLException {
-        lastUsed = System.currentTimeMillis()
-        try {
+        run {
             connection.clearWarnings()
-        } catch (SQLNonTransientConnectionException e) {
-            throw handleConnectionError(e)
         }
     }
 
     @Override
     Statement createStatement(int resultSetType, int resultSetConcurrency) throws SQLException {
-        lastUsed = System.currentTimeMillis()
-        try {
-            return connection.createStatement(resultSetType, resultSetConcurrency)
-        } catch (SQLNonTransientConnectionException e) {
-            throw handleConnectionError(e)
+        return run {
+            connection.createStatement(resultSetType, resultSetConcurrency)
         }
     }
 
     @Override
     PreparedStatement prepareStatement(String sql, int resultSetType, int resultSetConcurrency) throws SQLException {
-        lastUsed = System.currentTimeMillis()
-        try {
-            return connection.prepareStatement(sql, resultSetType, resultSetConcurrency)
-        } catch (SQLNonTransientConnectionException e) {
-            throw handleConnectionError(e)
+        return run {
+            connection.prepareStatement(sql, resultSetType, resultSetConcurrency)
         }
     }
 
     @Override
     CallableStatement prepareCall(String sql, int resultSetType, int resultSetConcurrency) throws SQLException {
-        lastUsed = System.currentTimeMillis()
-        try {
-            return connection.prepareCall(sql, resultSetType, resultSetConcurrency)
-        } catch (SQLNonTransientConnectionException e) {
-            throw handleConnectionError(e)
+        return run {
+            connection.prepareCall(sql, resultSetType, resultSetConcurrency)
         }
     }
 
     @Override
     Map<String, Class<?>> getTypeMap() throws SQLException {
-        lastUsed = System.currentTimeMillis()
-        try {
-            return connection.getTypeMap()
-        } catch (SQLNonTransientConnectionException e) {
-            throw handleConnectionError(e)
+        return run {
+            connection.getTypeMap()
         }
     }
 
     @Override
     void setTypeMap(Map<String, Class<?>> map) throws SQLException {
-        lastUsed = System.currentTimeMillis()
-        try {
+        run {
             connection.setTypeMap(map)
-        } catch (SQLNonTransientConnectionException e) {
-            throw handleConnectionError(e)
         }
     }
 
     @Override
     void setHoldability(int holdability) throws SQLException {
-        lastUsed = System.currentTimeMillis()
-        try {
+        run {
             connection.setHoldability(holdability)
-        } catch (SQLNonTransientConnectionException e) {
-            throw handleConnectionError(e)
         }
     }
 
     @Override
     int getHoldability() throws SQLException {
-        lastUsed = System.currentTimeMillis()
-        try {
-            return connection.getHoldability()
-        } catch (SQLNonTransientConnectionException e) {
-            throw handleConnectionError(e)
+        return run {
+            connection.getHoldability()
         }
     }
 
     @Override
     Savepoint setSavepoint() throws SQLException {
-        lastUsed = System.currentTimeMillis()
-        try {
-            return connection.setSavepoint()
-        } catch (SQLNonTransientConnectionException e) {
-            throw handleConnectionError(e)
+        return run {
+            connection.setSavepoint()
         }
     }
 
     @Override
     Savepoint setSavepoint(String name) throws SQLException {
-        lastUsed = System.currentTimeMillis()
-        try {
-            return connection.setSavepoint(name)
-        } catch (SQLNonTransientConnectionException e) {
-            throw handleConnectionError(e)
+        return run {
+            connection.setSavepoint(name)
         }
     }
 
     @Override
     void rollback(Savepoint savepoint) throws SQLException {
-        lastUsed = System.currentTimeMillis()
-        try {
+        run {
             connection.rollback(savepoint)
-        } catch (SQLNonTransientConnectionException e) {
-            throw handleConnectionError(e)
         }
     }
 
     @Override
     void releaseSavepoint(Savepoint savepoint) throws SQLException {
-        lastUsed = System.currentTimeMillis()
-        try {
+        run {
             connection.releaseSavepoint(savepoint)
-        } catch (SQLNonTransientConnectionException e) {
-            throw handleConnectionError(e)
         }
     }
 
     @Override
     Statement createStatement(int resultSetType, int resultSetConcurrency, int resultSetHoldability) throws SQLException {
-        lastUsed = System.currentTimeMillis()
-        try {
-            return connection.createStatement(resultSetType, resultSetConcurrency, resultSetHoldability)
-        } catch (SQLNonTransientConnectionException e) {
-            throw handleConnectionError(e)
+        return run {
+            connection.createStatement(resultSetType, resultSetConcurrency, resultSetHoldability)
         }
     }
 
     @Override
     PreparedStatement prepareStatement(String sql, int resultSetType, int resultSetConcurrency, int resultSetHoldability) throws SQLException {
-        lastUsed = System.currentTimeMillis()
-        try {
-            return connection.prepareStatement(sql, resultSetType, resultSetConcurrency, resultSetHoldability)
-        } catch (SQLNonTransientConnectionException e) {
-            throw handleConnectionError(e)
+        return run {
+            connection.prepareStatement(sql, resultSetType, resultSetConcurrency, resultSetHoldability)
         }
     }
 
     @Override
     CallableStatement prepareCall(String sql, int resultSetType, int resultSetConcurrency, int resultSetHoldability) throws SQLException {
-        lastUsed = System.currentTimeMillis()
-        try {
-            return connection.prepareCall(sql, resultSetType, resultSetConcurrency, resultSetHoldability)
-        } catch (SQLNonTransientConnectionException e) {
-            throw handleConnectionError(e)
+        return run {
+            connection.prepareCall(sql, resultSetType, resultSetConcurrency, resultSetHoldability)
         }
     }
 
     @Override
     PreparedStatement prepareStatement(String sql, int autoGeneratedKeys) throws SQLException {
-        lastUsed = System.currentTimeMillis()
-        try {
-            return connection.prepareStatement(sql, autoGeneratedKeys)
-        } catch (SQLNonTransientConnectionException e) {
-            throw handleConnectionError(e)
+        return run {
+            connection.prepareStatement(sql, autoGeneratedKeys)
         }
     }
 
     @Override
     PreparedStatement prepareStatement(String sql, int[] columnIndexes) throws SQLException {
-        lastUsed = System.currentTimeMillis()
-        try {
-            return connection.prepareStatement(sql, columnIndexes)
-        } catch (SQLNonTransientConnectionException e) {
-            throw handleConnectionError(e)
+        return run {
+            connection.prepareStatement(sql, columnIndexes)
         }
     }
 
     @Override
     PreparedStatement prepareStatement(String sql, String[] columnNames) throws SQLException {
-        lastUsed = System.currentTimeMillis()
-        try {
-            return connection.prepareStatement(sql, columnNames)
-        } catch (SQLNonTransientConnectionException e) {
-            throw handleConnectionError(e)
+        return run {
+            connection.prepareStatement(sql, columnNames)
         }
     }
 
     @Override
     Clob createClob() throws SQLException {
-        lastUsed = System.currentTimeMillis()
-        try {
-            return connection.createClob()
-        } catch (SQLNonTransientConnectionException e) {
-            throw handleConnectionError(e)
+        return run {
+            connection.createClob()
         }
     }
 
     @Override
     Blob createBlob() throws SQLException {
-        lastUsed = System.currentTimeMillis()
-        try {
-            return connection.createBlob()
-        } catch (SQLNonTransientConnectionException e) {
-            throw handleConnectionError(e)
+        return run {
+            connection.createBlob()
         }
     }
 
     @Override
     NClob createNClob() throws SQLException {
-        lastUsed = System.currentTimeMillis()
-        try {
-            return connection.createNClob()
-        } catch (SQLNonTransientConnectionException e) {
-            throw handleConnectionError(e)
+        return run {
+            connection.createNClob()
         }
     }
 
     @Override
     SQLXML createSQLXML() throws SQLException {
-        lastUsed = System.currentTimeMillis()
-        try {
-            return connection.createSQLXML()
-        } catch (SQLNonTransientConnectionException e) {
-            throw handleConnectionError(e)
+        return run {
+            connection.createSQLXML()
         }
     }
 
     @Override
     boolean isValid(int timeout) throws SQLException {
-        lastUsed = System.currentTimeMillis()
-        try {
-            return connection.isValid(timeout)
-        } catch (SQLNonTransientConnectionException e) {
-            throw handleConnectionError(e)
+        return run {
+            connection.isValid(timeout)
         }
     }
 
     @Override
     void setClientInfo(String name, String value) throws SQLClientInfoException {
-        lastUsed = System.currentTimeMillis()
-        try {
+        run {
             connection.setClientInfo(name, value)
-        } catch (SQLNonTransientConnectionException e) {
-            throw handleConnectionError(e)
         }
     }
 
     @Override
     void setClientInfo(Properties properties) throws SQLClientInfoException {
-        lastUsed = System.currentTimeMillis()
-        try {
+        run {
             connection.setClientInfo(properties)
-        } catch (SQLNonTransientConnectionException e) {
-            throw handleConnectionError(e)
         }
     }
 
     @Override
     String getClientInfo(String name) throws SQLException {
-        lastUsed = System.currentTimeMillis()
-        try {
-            return connection.getClientInfo(name)
-        } catch (SQLNonTransientConnectionException e) {
-            throw handleConnectionError(e)
+        return run {
+            connection.getClientInfo(name)
         }
     }
 
     @Override
     Properties getClientInfo() throws SQLException {
-        lastUsed = System.currentTimeMillis()
-        try {
-            return connection.getClientInfo()
-        } catch (SQLNonTransientConnectionException e) {
-            throw handleConnectionError(e)
+        return run {
+            connection.getClientInfo()
         }
     }
 
     @Override
     Array createArrayOf(String typeName, Object[] elements) throws SQLException {
-        lastUsed = System.currentTimeMillis()
-        try {
-            return connection.createArrayOf(typeName, elements)
-        } catch (SQLNonTransientConnectionException e) {
-            throw handleConnectionError(e)
+        return run {
+            connection.createArrayOf(typeName, elements)
         }
     }
 
     @Override
     Struct createStruct(String typeName, Object[] attributes) throws SQLException {
-        lastUsed = System.currentTimeMillis()
-        try {
-            return connection.createStruct(typeName, attributes)
-        } catch (SQLNonTransientConnectionException e) {
-            throw handleConnectionError(e)
+        return run {
+            connection.createStruct(typeName, attributes)
         }
     }
 
     @Override
     void setSchema(String schema) throws SQLException {
-        lastUsed = System.currentTimeMillis()
-        try {
+        run {
             connection.setSchema(schema)
-        } catch (SQLNonTransientConnectionException e) {
-            throw handleConnectionError(e)
         }
     }
 
     @Override
     String getSchema() throws SQLException {
-        lastUsed = System.currentTimeMillis()
-        try {
-            return connection.getSchema()
-        } catch (SQLNonTransientConnectionException e) {
-            throw handleConnectionError(e)
+        return run {
+            connection.getSchema()
         }
     }
 
     @Override
     void abort(Executor executor) throws SQLException {
-        lastUsed = System.currentTimeMillis()
-        try {
+        run {
             connection.abort(executor)
-        } catch (SQLNonTransientConnectionException e) {
-            throw handleConnectionError(e)
         }
     }
 
     @Override
     void setNetworkTimeout(Executor executor, int milliseconds) throws SQLException {
-        lastUsed = System.currentTimeMillis()
-        try {
+        run {
             connection.setNetworkTimeout(executor, milliseconds)
-        } catch (SQLNonTransientConnectionException e) {
-            throw handleConnectionError(e)
         }
     }
 
     @Override
     int getNetworkTimeout() throws SQLException {
-        lastUsed = System.currentTimeMillis()
-        try {
-            return connection.getNetworkTimeout()
-        } catch (SQLNonTransientConnectionException e) {
-            throw handleConnectionError(e)
+        return run {
+            connection.getNetworkTimeout()
         }
     }
 
     @Override
     void beginRequest() throws SQLException {
-        lastUsed = System.currentTimeMillis()
-        try {
+        run {
             connection.beginRequest()
-        } catch (SQLNonTransientConnectionException e) {
-            throw handleConnectionError(e)
         }
     }
 
     @Override
     void endRequest() throws SQLException {
-        lastUsed = System.currentTimeMillis()
-        try {
+        run {
             connection.endRequest()
-        } catch (SQLNonTransientConnectionException e) {
-            throw handleConnectionError(e)
         }
     }
 
     @Override
     boolean setShardingKeyIfValid(ShardingKey shardingKey, ShardingKey superShardingKey, int timeout) throws SQLException {
-        lastUsed = System.currentTimeMillis()
-        try {
-            return connection.setShardingKeyIfValid(shardingKey, superShardingKey, timeout)
-        } catch (SQLNonTransientConnectionException e) {
-            throw handleConnectionError(e)
+        return run {
+            connection.setShardingKeyIfValid(shardingKey, superShardingKey, timeout)
         }
     }
 
     @Override
     boolean setShardingKeyIfValid(ShardingKey shardingKey, int timeout) throws SQLException {
-        lastUsed = System.currentTimeMillis()
-        try {
-            return connection.setShardingKeyIfValid(shardingKey, timeout)
-        } catch (SQLNonTransientConnectionException e) {
-            throw handleConnectionError(e)
+        return run {
+            connection.setShardingKeyIfValid(shardingKey, timeout)
         }
     }
 
     @Override
     void setShardingKey(ShardingKey shardingKey, ShardingKey superShardingKey) throws SQLException {
-        lastUsed = System.currentTimeMillis()
-        try {
+        run {
             connection.setShardingKey(shardingKey, superShardingKey)
-        } catch (SQLNonTransientConnectionException e) {
-            throw handleConnectionError(e)
         }
     }
 
     @Override
     void setShardingKey(ShardingKey shardingKey) throws SQLException {
-        lastUsed = System.currentTimeMillis()
-        try {
+        run {
             connection.setShardingKey(shardingKey)
-        } catch (SQLNonTransientConnectionException e) {
-            throw handleConnectionError(e)
         }
     }
 
@@ -625,12 +449,20 @@ class ConnectionHandle implements Connection {
         return false
     }
 
-    long getLastUsed() {
+    protected long getLastUsed() {
         lastUsed
     }
 
-    private def handleConnectionError(SQLNonTransientConnectionException exception) {
-        pooledConnection.notifyConnectionError(exception)
-        return exception
+    private <T> T run(Closure closure) {
+        if (closed) {
+            throw new SQLNonTransientConnectionException("Connection is closed")
+        }
+        lastUsed = System.currentTimeMillis()
+        try {
+            return closure.call() as T
+        } catch (SQLNonTransientConnectionException e) {
+            pooledConnection.notifyConnectionError(e)
+            throw e
+        }
     }
 }

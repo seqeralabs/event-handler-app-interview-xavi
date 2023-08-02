@@ -18,12 +18,14 @@ class PooledConnectionImpl implements PooledConnection {
     private Set<ConnectionEventListener> listeners = new HashSet<>()
 
     PooledConnectionImpl(Connection connection) {
-        this.handle = new ConnectionHandle(this, connection)
         this.connection = connection
     }
 
     @Override
     Connection getConnection() throws SQLException {
+        if (handle == null) {
+            handle = new ConnectionHandle(this, connection)
+        }
         handle
     }
 
@@ -55,6 +57,7 @@ class PooledConnectionImpl implements PooledConnection {
     protected void notifyConnectionClosed() {
         def event = new ConnectionEvent(this)
         for (listener in listeners) listener.connectionClosed(event)
+        handle = null
     }
 
     protected void notifyConnectionError(SQLException exception) {

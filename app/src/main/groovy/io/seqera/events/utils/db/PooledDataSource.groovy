@@ -6,6 +6,7 @@ import java.sql.Connection
 import java.sql.DriverManager
 import java.sql.SQLException
 import java.sql.SQLFeatureNotSupportedException
+import java.sql.SQLTransientConnectionException
 import java.util.concurrent.atomic.AtomicReferenceArray
 import java.util.logging.Logger
 import javax.sql.ConnectionEvent
@@ -91,7 +92,7 @@ class PooledDataSource implements DataSource, ConnectionEventListener {
                 }
             }
         }
-        throw new SQLException("No connection available")
+        throw new SQLTransientConnectionException("No connection available")
     }
 
     @Override

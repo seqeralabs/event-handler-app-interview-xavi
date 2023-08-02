@@ -5,12 +5,16 @@ import java.sql.Driver
 import java.sql.DriverManager
 import java.sql.SQLException
 import java.sql.SQLNonTransientConnectionException
+import java.sql.SQLTransientConnectionException
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
 
+import static org.junit.jupiter.api.Assertions.assertAll
+import static org.junit.jupiter.api.Assertions.assertEquals
 import static org.junit.jupiter.api.Assertions.assertThrows
+import static org.junit.jupiter.api.Assertions.assertTrue
 import static org.mockito.ArgumentMatchers.any
 import static org.mockito.ArgumentMatchers.eq
 import static org.mockito.Mockito.mock
@@ -83,8 +87,39 @@ class PooledDataSourceTest {
     }
 
     @Test
+    void 'database connections cannot be reused when closed by the application code'() {
+        def dataSource = pooledDataSource()
+        def connection = dataSource.connection
+        connection.close()
+
+        assertThrows(SQLNonTransientConnectionException.class) {
+            connection.prepareCall("SELECT 1 + 1")
+        }
+    }
+
+    @Test
+    void 'database connections are available after closed by the application code'() {
+        def dataSource = pooledDataSource()
+        def connectionMockSize = connectionMocks.size()
+        List<Connection> connections = []
+
+        // Allocate all connections in the pool
+        for (int i = 0; i < initialPoolSize; i++) {
+            connections += dataSource.connection
+        }
+
+        // Close all connections in the pool
+        connections.forEach { it.close() }
+
+        // New allocated connection without new connections to the database
+        assertEquals(connectionMockSize, connectionMocks.size())
+        dataSource.connection
+    }
+
+    @Test
     void 'database connections are re-established when there is a connection error'() {
         def dataSource = pooledDataSource()
+        def connectionMockSize = connectionMocks.size()
 
         // Stub all connections to throw an exception
         for (int i = 0; i < initialPoolSize; i++) {
@@ -92,12 +127,13 @@ class PooledDataSourceTest {
                     .thenThrow(new SQLNonTransientConnectionException())
         }
 
-        assertThrows(SQLException.class) {
+        assertThrows(SQLNonTransientConnectionException.class) {
             dataSource.connection.prepareCall("SELECT 1 + 1")
         }
 
         // The new available connection uses a non-stubbed mock
         dataSource.connection.prepareCall("SELECT 1 + 1")
+        assertEquals(connectionMockSize + 1, connectionMocks.size())
     }
 
     @Test
@@ -124,7 +160,7 @@ class PooledDataSourceTest {
         }
 
         // Next connection request should fail
-        assertThrows(SQLException.class) {
+        assertThrows(SQLTransientConnectionException.class) {
             dataSource.connection
         }
     }
