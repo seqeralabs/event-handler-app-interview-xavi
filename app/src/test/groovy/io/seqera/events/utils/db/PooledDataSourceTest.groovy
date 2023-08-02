@@ -49,7 +49,8 @@ class PooledDataSourceTest {
 
     @BeforeEach
     void setUp() {
-        dataSource = new PooledDataSource('jdbc:test:events',
+        dataSource = new PooledDataSource(
+                'jdbc:test:events',
                 'test',
                 '',
                 Driver.class.name,

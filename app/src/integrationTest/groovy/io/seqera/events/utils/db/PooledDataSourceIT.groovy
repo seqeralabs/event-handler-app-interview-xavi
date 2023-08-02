@@ -8,7 +8,8 @@ class PooledDataSourceIT {
 
     @Test
     void 'database connection can be obtained from the pool'() {
-        def dataSource = new PooledDataSource('jdbc:hsqldb:mem:events',
+        def dataSource = new PooledDataSource(
+                'jdbc:hsqldb:mem:events',
                 'sa',
                 '',
                 'org.hsqldb.jdbcDriver',
