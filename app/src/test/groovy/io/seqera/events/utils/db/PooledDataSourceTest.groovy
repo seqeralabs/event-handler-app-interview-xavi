@@ -67,7 +67,7 @@ class PooledDataSourceTest {
     @Test
     void 'database connections are allocated at startup'() {
         // The initial pool size of connections should have been created at startup
-        verify(driverMock, times(initialPoolSize)).connect(eq("jdbc:test:events"), any())
+        assertEquals(initialPoolSize, connectionMocks.size())
     }
 
     @Test
