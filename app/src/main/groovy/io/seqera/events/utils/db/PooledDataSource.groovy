@@ -71,7 +71,7 @@ class PooledDataSource implements DataSource, ConnectionEventListener {
         if (0 < idleTimeout) {
             this.timer = new Timer()
             this.timer.schedule({
-                checkConnectionTimeouts()
+                recycleIdleConnections()
             } as TimerTask, 1000, 1000)
         }
     }
@@ -172,7 +172,7 @@ class PooledDataSource implements DataSource, ConnectionEventListener {
         return pooledConnection
     }
 
-    private void checkConnectionTimeouts() {
+    private void recycleIdleConnections() {
         def idleTimeoutMillis = idleTimeout * 1000
         for (int i = 0; i < connections.length; i++) {
             def handle = connections[i].connection as ConnectionHandle
