@@ -3,18 +3,17 @@ package io.seqera.events.utils.db
 import java.sql.Connection
 import java.sql.Driver
 import java.sql.DriverManager
-import java.sql.SQLException
 import java.sql.SQLNonTransientConnectionException
 import java.sql.SQLTransientConnectionException
+import javax.sql.DataSource
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeAll
+import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
 
-import static org.junit.jupiter.api.Assertions.assertAll
 import static org.junit.jupiter.api.Assertions.assertEquals
 import static org.junit.jupiter.api.Assertions.assertThrows
-import static org.junit.jupiter.api.Assertions.assertTrue
 import static org.mockito.ArgumentMatchers.any
 import static org.mockito.ArgumentMatchers.eq
 import static org.mockito.Mockito.mock
@@ -27,6 +26,7 @@ import static org.mockito.Mockito.when
 class PooledDataSourceTest {
 
     private Driver driverMock
+    private DataSource dataSource
     private List<Connection> connectionMocks = []
 
     private int initialPoolSize = 3
@@ -47,6 +47,11 @@ class PooledDataSourceTest {
         DriverManager.registerDriver(driverMock, {})
     }
 
+    @BeforeEach
+    void setUp() {
+        dataSource = pooledDataSource()
+    }
+
     @AfterEach
     void tearDown() {
         connectionMocks.clear()
@@ -54,15 +59,12 @@ class PooledDataSourceTest {
 
     @Test
     void 'database connections are allocated at startup'() {
-        def dataSource = pooledDataSource()
-
         // The initial pool size of connections should have been created at startup
-        verify(driverMock, times(dataSource.initialPoolSize)).connect(eq("jdbc:test:events"), any())
+        verify(driverMock, times(initialPoolSize)).connect(eq("jdbc:test:events"), any())
     }
 
     @Test
     void 'database connections are not physically closed by the application code'() {
-        def dataSource = pooledDataSource()
         dataSource.connection.close()
 
         for (connection in connectionMocks) {
@@ -73,7 +75,6 @@ class PooledDataSourceTest {
 
     @Test
     void 'database connections are released when closed by the application code'() {
-        def dataSource = pooledDataSource()
         List<Connection> connections = []
 
         // Allocate all connections in the pool
@@ -88,7 +89,6 @@ class PooledDataSourceTest {
 
     @Test
     void 'database connections cannot be reused when closed by the application code'() {
-        def dataSource = pooledDataSource()
         def connection = dataSource.connection
         connection.close()
 
@@ -99,7 +99,6 @@ class PooledDataSourceTest {
 
     @Test
     void 'database connections are available after closed by the application code'() {
-        def dataSource = pooledDataSource()
         def connectionMockSize = connectionMocks.size()
         List<Connection> connections = []
 
@@ -118,7 +117,6 @@ class PooledDataSourceTest {
 
     @Test
     void 'database connections are re-established when there is a connection error'() {
-        def dataSource = pooledDataSource()
         def connectionMockSize = connectionMocks.size()
 
         // Stub all connections to throw an exception
@@ -138,7 +136,6 @@ class PooledDataSourceTest {
 
     @Test
     void 'database connections are recycled after an idle timeout'() {
-        def dataSource = pooledDataSource()
 
         // Allocate all connections in the pool
         for (int i = 0; i < initialPoolSize; i++) {
@@ -152,7 +149,6 @@ class PooledDataSourceTest {
 
     @Test
     void 'an exception is thrown when no connections are available in the pool'() {
-        def dataSource = pooledDataSource()
 
         // Allocate all connections in the pool
         for (int i = 0; i < initialPoolSize; i++) {
