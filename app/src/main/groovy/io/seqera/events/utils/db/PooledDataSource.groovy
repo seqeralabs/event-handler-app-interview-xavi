@@ -20,8 +20,8 @@ import static io.seqera.events.utils.db.PooledDataSource.ConnectionState.EMPTY
 @CompileStatic
 class PooledDataSource implements DataSource, ConnectionEventListener {
 
-    static int DEFAULT_IDLE_TIMEOUT_SECONDS = 5
-    static int DEFAULT_INITIAL_POOL_SIZE = 10
+    final static int DEFAULT_IDLE_TIMEOUT_SECONDS = 5
+    final static int DEFAULT_INITIAL_POOL_SIZE = 10
 
     private int idleTimeout = DEFAULT_IDLE_TIMEOUT_SECONDS
     private int initialPoolSize = DEFAULT_INITIAL_POOL_SIZE
