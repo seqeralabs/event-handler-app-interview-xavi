@@ -26,7 +26,7 @@ class PooledConnectionImpl implements PooledConnection {
         if (handle == null) {
             handle = new ConnectionHandle(this, connection)
         }
-        handle
+        return handle
     }
 
     @Override
