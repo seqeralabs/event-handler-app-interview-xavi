@@ -5,6 +5,7 @@ import java.sql.Driver
 import java.sql.DriverManager
 import java.sql.SQLNonTransientConnectionException
 import java.sql.SQLTransientConnectionException
+import java.util.concurrent.TimeUnit
 import javax.sql.DataSource
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeAll
@@ -12,13 +13,13 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
 
+import static org.awaitility.Awaitility.given
 import static org.junit.jupiter.api.Assertions.assertEquals
 import static org.junit.jupiter.api.Assertions.assertThrows
 import static org.mockito.ArgumentMatchers.any
 import static org.mockito.ArgumentMatchers.eq
 import static org.mockito.Mockito.mock
 import static org.mockito.Mockito.never
-import static org.mockito.Mockito.times
 import static org.mockito.Mockito.verify
 import static org.mockito.Mockito.when
 
@@ -150,8 +151,9 @@ class PooledDataSourceTest {
         }
 
         // After idle time, connection is available
-        Thread.sleep(idleTimeout * 1500)
-        dataSource.connection
+        given().ignoreException(SQLTransientConnectionException.class)
+                .await().atMost(idleTimeout + 1, TimeUnit.SECONDS)
+                .until { dataSource.connection != null }
     }
 
     @Test
