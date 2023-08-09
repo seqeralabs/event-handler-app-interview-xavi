@@ -6,5 +6,3 @@ create table EVENT(
         io INTEGER,
         cpu INTEGER
 );
-
-CALL now();
