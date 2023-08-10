@@ -1,6 +1,7 @@
 plugins {
     id 'groovy'
     id 'application'
+    id 'jvm-test-suite'
 }
 
 group = 'io.seqera'
@@ -17,15 +18,37 @@ dependencies {
     implementation 'org.apache.groovy:groovy-json:4.0.2'
     implementation group: 'org.hsqldb', name: 'hsqldb', version: '2.7.2'
 
-    testImplementation platform('org.junit:junit-bom:5.9.1')
-    testImplementation 'org.junit.jupiter:junit-jupiter'
+    testImplementation 'org.mockito:mockito-core:5.4.0'
+    testImplementation 'org.mockito:mockito-junit-jupiter:5.4.0'
+    testImplementation 'org.awaitility:awaitility-groovy:4.2.0'
 }
 
 application {
-    mainClass = 'App'
+    mainClass = 'io.seqera.events.App'
 }
 
-test {
-    useJUnitPlatform()
+testing {
+    suites {
+        test {
+            useJUnitJupiter('5.9.3')
+        }
+        integrationTest(JvmTestSuite) {
+            useJUnitJupiter('5.9.3')
+            dependencies {
+                implementation project(':app')
+                implementation 'org.apache.groovy:groovy:4.0.2'
+            }
+            targets {
+                all {
+                    testTask.configure {
+                        shouldRunAfter(test)
+                    }
+                }
+            }
+        }
+    }
 }
 
+tasks.named('check') {
+    dependsOn(testing.suites.integrationTest)
+}
