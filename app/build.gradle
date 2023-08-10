@@ -24,7 +24,7 @@ dependencies {
 }
 
 application {
-    mainClass = 'App'
+    mainClass = 'io.seqera.events.App'
 }
 
 testing {
