@@ -8,5 +8,5 @@ app:
     url: 'jdbc:hsqldb:mem:events'
     driver: 'org.hsqldb.jdbcDriver'
     dependency: '"org.hsqldb:hsqldb:2.7.2"'
-    idle-timeout-seconds: 5
-    initial-pool-size: 10
+    idle-timeout-seconds: PT0.1S
+    initial-pool-size: 3

@@ -5,7 +5,7 @@ import java.sql.Driver
 import java.sql.DriverManager
 import java.sql.SQLNonTransientConnectionException
 import java.sql.SQLTransientConnectionException
-import java.util.concurrent.TimeUnit
+import java.time.Duration
 import javax.sql.DataSource
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeAll
@@ -31,7 +31,7 @@ class PooledDataSourceTest {
     private List<Connection> connectionMocks = []
 
     private int initialPoolSize = 3
-    private int idleTimeout = 1
+    private def idleTimeout = Duration.ofMillis(100)
 
     @BeforeAll
     void beforeAll() {
@@ -152,7 +152,7 @@ class PooledDataSourceTest {
 
         // After idle time, connection is available
         given().ignoreException(SQLTransientConnectionException.class)
-                .await().atMost(idleTimeout + 1, TimeUnit.SECONDS)
+                .await().atMost(idleTimeout.plusMillis(10))
                 .until { dataSource.connection != null }
     }
 

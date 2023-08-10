@@ -2,6 +2,7 @@ package io.seqera.events.utils.db
 
 import groovy.sql.Sql
 import groovy.transform.TupleConstructor
+import java.time.Duration
 
 @TupleConstructor
 class ConnectionProviderImpl implements ConnectionProvider {
@@ -11,7 +12,7 @@ class ConnectionProviderImpl implements ConnectionProvider {
     String password
     String driver
 
-    int idleTimeoutSeconds
+    Duration idleTimeoutSeconds
     int initialPoolSize
 
     @Override

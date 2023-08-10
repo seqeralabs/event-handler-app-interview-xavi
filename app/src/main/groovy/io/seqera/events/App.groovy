@@ -10,6 +10,7 @@ import io.seqera.events.utils.AppContext
 import groovy.yaml.YamlSlurper
 import io.seqera.events.utils.db.ConnectionProvider
 import io.seqera.events.utils.db.ConnectionProviderImpl
+import java.time.Duration
 
 class App {
 
@@ -57,7 +58,7 @@ class App {
         def databaseConfig = conf['app']['database']
         return new ConnectionProviderImpl(serverUrl: databaseConfig['url'], username: databaseConfig['username'],
                 password: databaseConfig['password'], driver: databaseConfig['driver'],
-                idleTimeoutSeconds: databaseConfig['idle-timeout-seconds'] as Integer,
+                idleTimeoutSeconds: Duration.parse(databaseConfig['idle-timeout-seconds'] as String),
                 initialPoolSize: databaseConfig['initial-pool-size'] as Integer)
     }
 

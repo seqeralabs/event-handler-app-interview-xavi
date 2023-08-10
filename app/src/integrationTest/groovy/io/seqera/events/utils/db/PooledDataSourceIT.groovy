@@ -1,5 +1,6 @@
 package io.seqera.events.utils.db
 
+import java.time.Duration
 import org.junit.jupiter.api.Test
 
 import static org.junit.jupiter.api.Assertions.assertTrue
@@ -13,7 +14,7 @@ class PooledDataSourceIT {
                 'sa',
                 '',
                 'org.hsqldb.jdbcDriver',
-                5,
+                Duration.ofSeconds(1),
                 3
         )
         assertTrue(dataSource.connection.prepareCall('CALL now()').execute())

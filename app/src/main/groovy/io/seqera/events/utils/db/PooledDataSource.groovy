@@ -7,6 +7,7 @@ import java.sql.DriverManager
 import java.sql.SQLException
 import java.sql.SQLFeatureNotSupportedException
 import java.sql.SQLTransientConnectionException
+import java.time.Duration
 import java.util.concurrent.atomic.AtomicReferenceArray
 import java.util.logging.Logger
 import javax.sql.ConnectionEvent
@@ -20,10 +21,10 @@ import static io.seqera.events.utils.db.PooledDataSource.ConnectionState.EMPTY
 @CompileStatic
 class PooledDataSource implements DataSource, ConnectionEventListener {
 
-    final static int DEFAULT_IDLE_TIMEOUT_SECONDS = 5
+    final static Duration DEFAULT_IDLE_TIMEOUT = Duration.ofSeconds(5)
     final static int DEFAULT_INITIAL_POOL_SIZE = 10
 
-    private int idleTimeout = DEFAULT_IDLE_TIMEOUT_SECONDS
+    private Duration idleTimeout = DEFAULT_IDLE_TIMEOUT
     private int initialPoolSize = DEFAULT_INITIAL_POOL_SIZE
 
     private PooledConnectionImpl[] connections
@@ -46,10 +47,10 @@ class PooledDataSource implements DataSource, ConnectionEventListener {
             String username,
             String password,
             String driver,
-            int idleTimeout = DEFAULT_IDLE_TIMEOUT_SECONDS,
+            Duration idleTimeout = DEFAULT_IDLE_TIMEOUT,
             int initialPoolSize = DEFAULT_INITIAL_POOL_SIZE
     ) {
-        assert idleTimeout >= 0
+        assert idleTimeout >= Duration.ZERO
         assert initialPoolSize > 0
 
         Sql.loadDriver(driver)
@@ -68,11 +69,11 @@ class PooledDataSource implements DataSource, ConnectionEventListener {
             states.set(i, AVAILABLE)
         }
 
-        if (0 < idleTimeout) {
+        if (Duration.ZERO < idleTimeout) {
             this.timer = new Timer()
             this.timer.schedule({
                 recycleIdleConnections()
-            } as TimerTask, 1000, 1000)
+            } as TimerTask, 100, 100)
         }
     }
 
@@ -142,7 +143,7 @@ class PooledDataSource implements DataSource, ConnectionEventListener {
         return 0
     }
 
-    long getIdleTimeout() {
+    Duration getIdleTimeout() {
         return idleTimeout
     }
 
@@ -173,7 +174,7 @@ class PooledDataSource implements DataSource, ConnectionEventListener {
     }
 
     private void recycleIdleConnections() {
-        def idleTimeoutMillis = idleTimeout * 1000
+        def idleTimeoutMillis = idleTimeout.toMillis()
         for (int i = 0; i < connections.length; i++) {
             def handle = connections[i].connection as ConnectionHandle
             if (idleTimeoutMillis < System.currentTimeMillis() - handle.lastUsed) {
